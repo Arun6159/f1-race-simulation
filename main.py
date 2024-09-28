@@ -8,14 +8,14 @@ app = FastAPI()
 # Add CORS Middleware
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:3001"],  # Adjust this to your frontend's address
+    allow_origins=["http://localhost:3000"],  # Adjust this to your frontend's address
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
 
 @app.get("/events/{year}")
-async def get_events(year: int):
+async def get_events(year: int): 
     # Enable FastF1 cache
     fastf1.Cache.enable_cache("C:/Users/acer/F1 cache")
 
@@ -82,6 +82,32 @@ async def get_driver_positions(year: int, event_name: str):
     except Exception as e:
         print(f"Error fetching driver positions: {str(e)}")
         return {"error": "Failed to load driver positions"}, 500
+    
+# Endpoint to fetch driver abbreviations
+@app.get("/race/{year}/{event_name}/drivers")
+async def get_driver_abbreviations(year: int, event_name: str):
+    try:
+        # Enable FastF1 cache
+        fastf1.Cache.enable_cache("C:/Users/acer/F1 cache")
+        
+        # Fetch the event and load the race session
+        schedule = fastf1.get_event_schedule(year)
+        event = schedule.loc[schedule['EventName'] == event_name].iloc[0]
+        
+        session = fastf1.get_session(year, event['RoundNumber'], 'R')
+        session.load()
+
+        # Get driver abbreviations
+        driver_abbreviations = {}
+        for driver_num in session.drivers:
+            driver_info = session.get_driver(driver_num)
+            driver_abbreviations[driver_num] = driver_info.Abbreviation
+
+        return {"drivers": driver_abbreviations}
+    
+    except Exception as e:
+        print(f"Error fetching driver abbreviations: {str(e)}")
+        return {"error": "Failed to load driver abbreviations"}, 500
 
 
 
